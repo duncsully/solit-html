@@ -13,16 +13,14 @@ export class FunctionDirective extends AsyncDirective {
   static signalCache = new WeakMap<Function, ComputedSignal<any>>()
   constructor(partInfo: PartInfo) {
     super(partInfo)
-    this.shouldCompute = partInfo.type !== PartType.EVENT
+    this.isEvent = partInfo.type === PartType.EVENT
   }
 
-  shouldCompute: boolean
+  isEvent: boolean
 
   render(func: Function) {
-    if (!this.shouldCompute) {
-      return (...forward: unknown[]) => {
-        return batch(() => func(...forward))
-      }
+    if (this.isEvent) {
+      return (...forward: unknown[]) => batch(() => func(...forward))
     }
     const mappedSignal = SignalBase._getToSignalMap.get(func as () => void)
     if (mappedSignal) {
@@ -35,8 +33,10 @@ export class FunctionDirective extends AsyncDirective {
   }
 }
 /**
- * A directive to wrap a function and automatically observe any states
- * used within it, rerendering the template part when they change. Also
- * wraps event handlers in an action so updates are batched.
+ * A directive automatically applied to functions inside of solit-html templates.
+ *
+ * If the function is an event handler, it will be wrapped in `batch`.
+ *
+ * Otherwise, it will be converted to a ComputedSignal and observed.
  */
 export const func = directive(FunctionDirective)
