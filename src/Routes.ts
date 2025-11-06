@@ -44,6 +44,7 @@ type RouteMap<T> = {
 // TODO Way to load data before returning for SSR?
 // TODO types for modifiers * and +
 // TODO use computed signals for params
+// TODO more navigate features? e.g. ".." and "./path"
 
 const currentPath = signal(window.location.hash.slice(1))
 const setPath = (path: string) => {
@@ -54,6 +55,9 @@ let historyRouting = false
 let basePath = ''
 export const setupHistoryRouting = ({ base }: { base?: string } = {}) => {
   basePath = base ?? ''
+  if (basePath.endsWith('/')) {
+    basePath = basePath.slice(0, -1)
+  }
   historyRouting = true
   let initialPath = window.location.pathname
   if (initialPath.startsWith(basePath)) {
@@ -84,15 +88,45 @@ window.addEventListener('popstate', () => {
 })
 
 export const navigate = (path: string) => {
-  let fullPath = path
   if (historyRouting) {
-    fullPath = basePath + path
-    window.history.pushState({}, '', fullPath)
-  } else {
-    window.location.hash = fullPath
-  }
+    let logicalPath = currentPath.get() || '/'
+    if (!logicalPath.startsWith('/')) logicalPath = '/' + logicalPath
 
-  setPath(fullPath)
+    let targetPath: string
+    if (path.startsWith('/')) {
+      targetPath = basePath + path
+    } else {
+      let base = window.location.origin + basePath + logicalPath
+      if (!base.endsWith('/')) base += '/'
+      const url = new URL(path, base)
+      targetPath = url.pathname + url.search + url.hash
+    }
+
+    // Normalize: remove trailing slash except for root or basePath root
+    if (
+      targetPath.length > 1 &&
+      targetPath.endsWith('/') &&
+      (!basePath || targetPath !== basePath + '/')
+    ) {
+      targetPath = targetPath.slice(0, -1)
+    }
+    // Always ensure trailing slash for root with basePath
+    if (basePath && (targetPath === basePath || targetPath === basePath + '')) {
+      targetPath = basePath + '/'
+    }
+
+    window.history.pushState({}, '', targetPath)
+
+    let newLogicalPath = targetPath
+    if (basePath && newLogicalPath.startsWith(basePath)) {
+      newLogicalPath = newLogicalPath.slice(basePath.length)
+    }
+    setPath(newLogicalPath || '/')
+  } else {
+    const fullUrl = new URL(path, window.location.origin + window.location.hash)
+    window.location.hash = fullUrl.pathname + fullUrl.search
+    setPath(fullUrl.pathname)
+  }
 }
 
 const isStaticSegment = (segment: string) =>
