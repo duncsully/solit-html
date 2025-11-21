@@ -121,21 +121,20 @@ return html`
 Context lets you share values deep in the component tree without having to pass props. Create a context stack with `createContext`, optionally providing a default value. Provide a value to a callback's call stack with the `.provide` method on the returned context object. Consume the most recently provided value with the `.value` getter property.
 
 ```ts
-const themeContext = createContext(signal('light'))
+const themeContext = createContext<() => string>(() => 'light')
 
 const App = () => {
   const theme = signal('dark')
-  return themeContext.provide(theme, () => {
+  return themeContext.provide(theme.get, () => {
     return html`${SomeComponent()}`
   })
 }
 
 const DeeplyNestedComponent = () => {
-  const theme = themeContext.value
-  return html`<div
-    style=${() => ({
-      color: theme.get() === 'dark' ? 'white' : 'black',
-    })}
+  const getTheme = themeContext.value
+  return html`
+  <div
+    class=${() => getTheme() === 'dark' ? 'dark-theme' : 'light-theme'}
   >
     Hello
   </div>`
@@ -144,7 +143,7 @@ const DeeplyNestedComponent = () => {
 
 ## Routing
 
-Solit-html provides a simple router that can optionally leverage the `history` API, automatically handling anchor clicks to local hrefs. It uses URLPattern (polyfilled in browsers that don't support it) to match routes. You create a router with the `Router` function, passing in an object of routes to functions that will receive the route parameters as objects of signals. You can end a route with "*" or "*?" to match all the remaining URL segments, and then nest another Router inside that route to accomplish layouts and subrouting. Each Router establishes a context with the remaining unprocessed URL segments for the following Router to consume.
+Solit-html provides a simple router that can optionally leverage the `history` API, automatically handling anchor clicks to local hrefs. It uses URLPattern (polyfilled in browsers that don't support it) to match routes. You create a router with the `Router` function, passing in an object of routes to functions that will receive the route parameters as objects of signals. The router will select the most specific route that matches the current URL regardless of order. You can end a route with `*` or `*?` to match all the remaining URL segments, and then nest another Router inside that route to accomplish layouts and subrouting. Each Router establishes a context with the remaining unprocessed URL segments for the following Router to consume.
 
  ```ts
 setupHistoryRouting({
@@ -199,7 +198,7 @@ count.set(3) // Computed 4th time -> 8, cache size exceeded, removed 0 -> 0, cac
 
 ### computedGroup - One calculation, multiple signals
 
-You can use `computedGroup` to create multiple computed signals from a single computation.
+You can use `computedGroup` to create multiple computed signals from a single computation. You can return either an object or an array.
 
 ```ts
 const {
