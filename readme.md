@@ -64,7 +64,7 @@ render(Counter(), document.body)
 
 Signals are the state management solution in Solit-html. There are writable signals created with `signal(initialValue)` and computed signals created with `computed(getter)`. They both have the following common properties and methods:
 
-- `get()` - returns the current value. When used inside of a computed signal's getter, an effect, or a function inside of a template, the signal is automatically tracked as a dependency.
+- `get()` - returns the current value. When used inside of a computed signal's getter, an effect, or a function inside of a template, the signal is automatically tracked as a dependency unless it is called with `false`.
 - `value` - a getter property that wraps the `get` method for both computed and writable signals
 - `peek` - returns the current value without tracking it as a dependency
 - `subscribe(callback)` - subscribes to changes to the current value, returns an unsubscribe function, and immediately calls the callback with the current value

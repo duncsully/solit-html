@@ -25,6 +25,17 @@ describe('Signal', () => {
 
       expect(number.get()).toBe(1)
     })
+
+    it('is not tracked when called with false', () => {
+      const number = new Signal(1)
+      const doubled = new ComputedSignal(() => number.get(false) * 2)
+      const subscriber = vi.fn()
+      doubled.observe(subscriber)
+
+      number.set(2)
+
+      expect(subscriber).not.toHaveBeenCalled()
+    })
   })
 
   describe('peek', () => {

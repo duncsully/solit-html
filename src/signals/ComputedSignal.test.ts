@@ -102,6 +102,18 @@ describe('Computed', () => {
 
         expect(computedObservable.get()).toBe('hi')
       })
+
+      it('is not tracked when called with false', () => {
+        const number = new Signal(1)
+        const doubled = new ComputedSignal(() => number.get() * 2)
+        const quadrupled = new ComputedSignal(() => doubled.get(false) * 2)
+        const subscriber = vi.fn()
+        quadrupled.observe(subscriber)
+
+        number.set(2)
+
+        expect(subscriber).not.toHaveBeenCalled()
+      })
     })
 
     describe('peek', () => {

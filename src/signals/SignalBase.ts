@@ -84,9 +84,11 @@ export class SignalBase<T> {
    * Get the current value, setting this signal as a dependency if the caller
    * is a computed signal
    */
-  get() {
-    const caller = SignalBase.context.at(-1)
-    caller?.(this)
+  get(track = true) {
+    if (track) {
+      const caller = SignalBase.context.at(-1)
+      caller?.(this)
+    }
 
     return this.peek
   }
