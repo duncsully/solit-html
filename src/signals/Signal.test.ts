@@ -60,6 +60,14 @@ describe('Signal', () => {
 
       expect(number.get()).toBe(2)
     })
+
+    it('returns the new value after setting', () => {
+      const number = new Signal(1)
+
+      const newValue = number.set(2)
+
+      expect(newValue).toBe(2)
+    })
   })
 
   describe('update', () => {
@@ -69,6 +77,34 @@ describe('Signal', () => {
       nubbin.update((value) => ++value)
 
       expect(nubbin.get()).toBe(2)
+    })
+
+    it('returns the new value after updating', () => {
+      const nubbin = new Signal(1)
+
+      const newValue = nubbin.update((value) => ++value)
+
+      expect(newValue).toBe(2)
+    })
+  })
+
+  describe('reset', () => {
+    it('resets the value to the initial value passed to the constructor', () => {
+      const nubbin = new Signal(1)
+
+      nubbin.set(2)
+      nubbin.reset()
+
+      expect(nubbin.get()).toBe(1)
+    })
+
+    it('returns the reset value', () => {
+      const nubbin = new Signal(1)
+      nubbin.set(2)
+
+      const resetValue = nubbin.reset()
+
+      expect(resetValue).toBe(1)
     })
   })
 

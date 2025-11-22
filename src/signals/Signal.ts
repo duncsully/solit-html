@@ -37,6 +37,7 @@ export class Signal<T> extends SignalBase<T> {
   set = (value: T) => {
     this._value = value
     this.requestUpdate()
+    return this._value
   }
 
   /**
@@ -44,14 +45,14 @@ export class Signal<T> extends SignalBase<T> {
    * a new value, and update subscribers if it has changed
    */
   update = (updater: (currentValue: T) => T) => {
-    this.set(updater(this._value))
+    return this.set(updater(this._value))
   }
 
   /**
    * Reset the value to the initial value
    */
   reset = () => {
-    this.set(this._initialValue)
+    return this.set(this._initialValue)
   }
 
   protected requestUpdate() {
@@ -80,6 +81,21 @@ export class Signal<T> extends SignalBase<T> {
 export const signal = <T>(value: T, options?: SignalOptions<T>) =>
   new Signal(value, options)
 
+/**
+ * Creates a reactive state variable.
+ * @param value - The initial value of the state
+ * @returns A tuple containing the getter and setter for the state
+ * @example
+ * ```ts
+ * const [getCount, setCount] = state(0)
+ * getCount() // 0
+ * setCount(5) // 5
+ * ```
+ */
+export const state = <T>(value: T) => {
+  const sig = new Signal(value)
+  return [sig.get, sig.set] as const
+}
 /**
  * Defer checking for subscription updates until passed action has run,
  * preventing a subscriber from being updated multiple times for multiple
