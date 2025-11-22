@@ -137,3 +137,18 @@ export class ComputedSignal<T> extends SignalBase<T> {
  */
 export const computed = <T>(getter: () => T, options?: ComputedOptions<T>) =>
   new ComputedSignal(getter, options)
+
+/**
+ * Creates a memoized version of the provided getter function, tracking any
+ * state or other memos used inside of it.
+ * @param getter - The function to memoize
+ * @returns A memoized version of the getter function
+ * @example
+ * ```ts
+ * const [getCount, setCount] = state(1)
+ * const getDoubled = memo(() => getCount() * 2)
+ * getDoubled() // 1 * 2 = 2
+ * setCount(1)
+ * getDoubled() // 2 (cached)
+ */
+export const memo = <T>(getter: () => T) => new ComputedSignal(getter).get
