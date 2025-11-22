@@ -1,6 +1,7 @@
 import { noChange } from 'lit-html'
 import { AsyncDirective, directive } from 'lit-html/async-directive.js'
 import { watch, type Effect } from '../signals/watch'
+import { batch } from '../signals/Signal'
 
 export class EffectDirective extends AsyncDirective {
   cleanups: (() => void)[] = []
@@ -14,11 +15,13 @@ export class EffectDirective extends AsyncDirective {
 
   protected runEffects() {
     this.cleanups = []
-    this.effects.forEach((effectCb) => {
-      const cleanup = watch(effectCb, effectCb.name ?? 'anon effect')
-      if (cleanup) {
-        this.cleanups.push(cleanup)
-      }
+    batch(() => {
+      this.effects.forEach((effectCb) => {
+        const cleanup = watch(effectCb, effectCb.name ?? 'anon effect')
+        if (cleanup) {
+          this.cleanups.push(cleanup)
+        }
+      })
     })
   }
 
