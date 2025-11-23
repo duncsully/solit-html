@@ -1,10 +1,19 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { store } from './store'
 import { signal } from './signals/Signal'
 import { computed } from './signals/ComputedSignal'
-import { watch } from './signals/watch'
+import { watch as baseWatch } from './signals/watch'
 
 describe('store', () => {
+  const unsubList = [] as Array<() => void>
+  const watch = (fn) => {
+    const unsub = baseWatch(fn)
+    unsubList.push(unsub)
+  }
+  afterEach(() => {
+    unsubList.forEach((unsub) => unsub())
+    unsubList.length = 0
+  })
   it('allows reading properties', () => {
     const dimensions = store({ width: 1, height: 2 })
     expect(dimensions.width).toBe(1)

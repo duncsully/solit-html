@@ -1,16 +1,22 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { computed } from './ComputedSignal'
 import { signal } from './Signal'
 import { watch } from './watch'
 
 describe('watch', () => {
+  let unsub: () => void
+  afterEach(() => {
+    unsub?.()
+    unsub = undefined!
+  })
+
   it('runs the callback immediately', () => {
     const number = signal(1)
     const squared = computed(() => number.get() ** 2)
     const effectFn = vi.fn(() => {
       squared.get()
     })
-    watch(effectFn)
+    unsub = watch(effectFn)
 
     expect(effectFn).toHaveBeenCalled()
   })
@@ -21,7 +27,7 @@ describe('watch', () => {
     const effectFn = vi.fn(() => {
       squared.get()
     })
-    watch(effectFn, 'test watcher')
+    unsub = watch(effectFn, 'test watcher')
     effectFn.mockReset()
 
     number.set(2)
