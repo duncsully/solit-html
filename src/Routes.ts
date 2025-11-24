@@ -45,6 +45,7 @@ type RouteMap<T> = {
 // TODO Way to load data before returning for SSR?
 // TODO types for modifiers * and +
 // TODO use computed signals for params
+// TODO escape input to navigate?
 
 const currentPath = signal(window.location.hash.slice(1))
 const setPath = (path: string) => {
@@ -87,7 +88,6 @@ window.addEventListener('popstate', () => {
   )
 })
 
-// TODO: Escape path properly
 export const navigate = (path: string) => {
   if (historyRouting) {
     let logicalPath = currentPath.get() || '/'
@@ -238,5 +238,3 @@ export const Router = <K, T extends RouteMap<K>>(
     )
   )
 }
-
-// TODO: Update JSDocs and readme
