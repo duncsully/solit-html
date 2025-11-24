@@ -157,6 +157,15 @@ export const store = <T extends object>(initialState: T) => {
         })
         return result
       }, */
+      ownKeys() {
+        return Object.keys(signalMap)
+          .filter(
+            (keyPath) =>
+              keyPath.startsWith(keyPathPrefix + '.') &&
+              keyPath.split('.').length === keyPathPrefix.split('.').length + 1
+          )
+          .map((keyPath) => keyPath.slice(keyPathPrefix.length + 1))
+      },
     })
     return result
   }
