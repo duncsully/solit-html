@@ -1,10 +1,10 @@
 import { HTMLTemplateResult, nothing } from 'lit-html'
 import { signal } from './signals/Signal'
 import { computed } from './signals/ComputedSignal'
-import { store } from './store'
 import { URLPattern } from 'urlpattern-polyfill'
 import { createContext } from './context'
 import { ReactiveGetter } from './types'
+import { memoGroup } from './computedGroup'
 
 // @ts-ignore
 globalThis.URLPattern ??= URLPattern
@@ -46,6 +46,7 @@ type RouteMap<T> = {
 // TODO types for modifiers * and +
 // TODO use computed signals for params
 // TODO escape input to navigate?
+// TODO lots of error handling for unhappy paths
 
 const currentPath = signal(window.location.hash.slice(1))
 const setPath = (path: string) => {
@@ -156,7 +157,9 @@ const sortPaths = (paths: string[]) =>
     return compareSegments(aParts, bParts)
   })
 
-const remainingPathContext = createContext(currentPath.get)
+const remainingPathContext = createContext<ReactiveGetter<string | undefined>>(
+  currentPath.get
+)
 
 /**
  * Router component for choosing a route based on the provided path.
@@ -198,43 +201,43 @@ const remainingPathContext = createContext(currentPath.get)
  */
 export const Router = <K, T extends RouteMap<K>>(
   routes: T,
-  path = remainingPathContext.value
+  path = remainingPathContext.value ?? ''
 ) => {
-  const params = store({} as any)
-
   const activePath = computed(() => {
-    const formattedPath = `${path()?.startsWith('/') ? '' : '/'}${path() ?? ''}`
+    const pathValue = path() ?? ''
+    const formattedPath = `${pathValue.startsWith('/') ? '' : '/'}${pathValue}`
 
     const matchedPath = sortPaths(Object.keys(routes)).find((route) => {
       const formattedRoute = `${route.startsWith('/') ? '' : '/'}${route}`
       const pattern = new URLPattern({
         pathname: formattedRoute,
       })
-      const match = pattern.exec({ pathname: formattedPath })
-      if (match) {
-        // TODO: side effect here, move out somehow?
-        // This allows for a change in route that doesn't change the component, but still updates the params
-        Object.entries(match.pathname.groups).forEach(([key, value]) => {
-          params[key] = value && decodeURIComponent(value)
-        })
-
-        return formattedRoute
-      }
+      return !!pattern.exec({ pathname: formattedPath })
     }) as keyof T | undefined
 
     return matchedPath
   })
 
+  const params = memoGroup(() => {
+    const formattedPath = `${path()?.startsWith('/') ? '' : '/'}${path() ?? ''}`
+
+    const active = activePath.get() as string | undefined
+    if (!active) return {}
+    const pattern = new URLPattern({
+      pathname: active.startsWith('/') ? active : `/${active}`,
+    })
+    const match = pattern.exec({ pathname: formattedPath })
+    return match ? match.pathname.groups : {}
+  })
+
+  Object.values(params).forEach((getter) => {
+    getter(false) // initialize, since they're lazy
+  })
+
   return computed(() =>
     remainingPathContext.provide(
-      params.$[0].get,
-      () =>
-        routes[activePath.get() ?? '']?.(
-          Object.getOwnPropertyNames(params).reduce((acc, key) => {
-            acc[key] = params.$[key].get
-            return acc
-          }, {} as Record<string, () => string>)
-        ) ?? nothing
+      params[0],
+      () => routes[activePath.get() ?? '']?.(params) ?? nothing
     )
   )
 }
