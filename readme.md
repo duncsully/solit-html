@@ -141,7 +141,7 @@ const DeeplyNestedComponent = () => {
 
 ## Routing
 
-Solit-html provides a simple router that can optionally leverage the `history` API, automatically handling anchor clicks to local hrefs. It uses URLPattern (polyfilled in browsers that don't support it) to match routes. You create a router with the `Router` function, passing in an object of routes to functions that will receive the route parameters as objects of signals. The router will select the most specific route that matches the current URL regardless of order. You can end a route with `*` or `*?` to match all the remaining URL segments, and then nest another Router inside that route to accomplish layouts and subrouting. Each Router establishes a context with the remaining unprocessed URL segments for the following Router to consume.
+Solit-html provides a simple router that can optionally leverage the `history` API, automatically handling anchor clicks to local hrefs. It uses URLPattern (polyfilled in browsers that don't support it) to match routes. You create a router with the `Router` function, passing in an object of routes to functions that will receive the route parameters as objects of reactive getters. The router will select the most specific route that matches the current URL regardless of order. You can end a route with `*` or `*?` to match all the remaining URL segments, and then nest another Router inside that route to accomplish layouts and subrouting. Each Router establishes a context with the remaining unprocessed URL segments for the following Router to consume.
 
  ```ts
 setupHistoryRouting({

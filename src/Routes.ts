@@ -1,9 +1,10 @@
 import { HTMLTemplateResult, nothing } from 'lit-html'
-import { Signal, signal } from './signals/Signal'
+import { signal } from './signals/Signal'
 import { computed } from './signals/ComputedSignal'
 import { store } from './store'
 import { URLPattern } from 'urlpattern-polyfill'
 import { createContext } from './context'
+import { ReactiveGetter } from './types'
 
 // @ts-ignore
 globalThis.URLPattern ??= URLPattern
@@ -27,9 +28,9 @@ type OptionalPathParams<T extends string | number | symbol> =
     : never
 
 type ParamMap<T extends string> = {
-  [K in PathParams<T>]: Signal<string>
+  [K in PathParams<T>]: ReactiveGetter<string>
 } & {
-  [K in OptionalPathParams<T>]: Signal<string | undefined>
+  [K in OptionalPathParams<T>]: ReactiveGetter<string | undefined>
 }
 
 type RouteMap<T> = {
@@ -44,7 +45,6 @@ type RouteMap<T> = {
 // TODO Way to load data before returning for SSR?
 // TODO types for modifiers * and +
 // TODO use computed signals for params
-// TODO more navigate features? e.g. ".." and "./path"
 
 const currentPath = signal(window.location.hash.slice(1))
 const setPath = (path: string) => {
@@ -87,6 +87,7 @@ window.addEventListener('popstate', () => {
   )
 })
 
+// TODO: Escape path properly
 export const navigate = (path: string) => {
   if (historyRouting) {
     let logicalPath = currentPath.get() || '/'
@@ -155,7 +156,7 @@ const sortPaths = (paths: string[]) =>
     return compareSegments(aParts, bParts)
   })
 
-const remainingPathContext = createContext(currentPath)
+const remainingPathContext = createContext(currentPath.get)
 
 /**
  * Router component for choosing a route based on the provided path.
@@ -164,16 +165,16 @@ const remainingPathContext = createContext(currentPath)
  *
  * Uses [URLPattern](https://developer.mozilla.org/en-US/docs/Web/API/URL_Pattern_API)
  * to handle path matching. Passes the groups from the match to the component as an object
- * of signals.
+ * of reactive getters.
  *
  * tl;dr:
  * - `''` matches an empty segment (i.e. the index), slash or no slash
- * - `'*'` matches everything (slash required, else '*?' makes the slash optional), passing an object with the key `0` as a signal with the value of the matched path.
- * - `':param'` matches a route segment if present and passes an object with the key `param` as a signal with the value of the matched param.
- * - `':param?'` matches a route segment, present or not, and passes an object with the key `param` as a signal with the value of the matched param, or undefined if not present.
+ * - `'*'` matches everything (slash required, else '*?' makes the slash optional), passing an object with the key `0` as a reactive getter with the value of the matched path.
+ * - `':param'` matches a route segment if present and passes an object with the key `param` as a reactive getter with the value of the matched param.
+ * - `':param?'` matches a route segment, present or not, and passes an object with the key `param` as a reactive getter with the value of the matched param, or undefined if not present.
  *
- * The second argument defaults to the current remaining path context signal used by the router navigation functions. You can optionally
- * pass a different signal, e.g. selected tab state, to match against.
+ * The second argument defaults to the current remaining path context reactive getter used by the router navigation functions. You can optionally
+ * pass a different reactive getter, e.g. selected tab state, to match against.
  *
  * @example
  *
@@ -202,9 +203,7 @@ export const Router = <K, T extends RouteMap<K>>(
   const params = store({} as any)
 
   const activePath = computed(() => {
-    const formattedPath = `${path.get()?.startsWith('/') ? '' : '/'}${
-      path.get() ?? ''
-    }`
+    const formattedPath = `${path()?.startsWith('/') ? '' : '/'}${path() ?? ''}`
 
     const matchedPath = sortPaths(Object.keys(routes)).find((route) => {
       const formattedRoute = `${route.startsWith('/') ? '' : '/'}${route}`
@@ -216,8 +215,9 @@ export const Router = <K, T extends RouteMap<K>>(
         // TODO: side effect here, move out somehow?
         // This allows for a change in route that doesn't change the component, but still updates the params
         Object.entries(match.pathname.groups).forEach(([key, value]) => {
-          params[key] = value
+          params[key] = value && decodeURIComponent(value)
         })
+
         return formattedRoute
       }
     }) as keyof T | undefined
@@ -227,8 +227,16 @@ export const Router = <K, T extends RouteMap<K>>(
 
   return computed(() =>
     remainingPathContext.provide(
-      params.$[0],
-      () => routes[activePath.get() ?? '']?.(params.$) ?? nothing
+      params.$[0].get,
+      () =>
+        routes[activePath.get() ?? '']?.(
+          Object.getOwnPropertyNames(params).reduce((acc, key) => {
+            acc[key] = params.$[key].get
+            return acc
+          }, {} as Record<string, () => string>)
+        ) ?? nothing
     )
   )
 }
+
+// TODO: Update JSDocs and readme
