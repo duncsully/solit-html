@@ -7,17 +7,19 @@ Yet another user interface library. Small, simple, signal-based, and sfunctional
 Only three primitives are needed to build reactive components:
 
 - `state(initialValue)` - creates a getter and setter pair for trackable state
+  - `urlState(key, initialValue)` - alternatively, creates a state getter and setter pair that syncs with URL search parameters
 - `effect(callback)` - runs and ties a side effect to the next created template when it renders
 - `html` - a template literal tagging function to build reactive lit-html templates for generating DOM
 
 The returned template results of calling a component can then be rendered with lit-html's `render` function.
 
 ```ts
-import { state, effect, html } from 'solit-html'
+import { urlState, effect, html } from 'solit-html'
 import { render } from 'lit-html'
 
 const Counter = () => {
-  const [getCount, setCount] = state(0)
+  // State synced with URL search param "count"
+  const [getCount, setCount] = urlState('count', 0)
 
   const increment = () => setCount(getCount() + 1)
 
@@ -55,6 +57,41 @@ const Doubled = ({ getCount }: { getCount: () => number }) => {
 }
 
 render(Counter(), document.body)
+```
+
+## State
+
+State is created with the `state` and `urlState` functions. Prefer `urlState` for any shareable state that would benefit from being in the URL (think bookmarking and sharing links). These functions return a tuple of a getter and a setter. The getter is a function that returns the current value of the state, and the setter is a function that sets the value of the state. When the state is updated with the setter, any templates or effects that depend on the state will automatically update. To update a template, pass the getter function directly in.
+
+```ts
+const [getCount, setCount] = urlState('count', 0)
+const [getName, setName] = state('Guest')
+
+return html`<div>
+  <p>Hello, ${getName}!</p>
+  <p>Count: ${getCount}</p>
+  <button @click=${() => setCount(getCount() + 1)}>Increment</button>
+  <input 
+    type="text" 
+    .value=${getName} 
+    @input=${(e) => setName(e.target.value)} 
+  />
+</div>`
+```
+
+### Derived state
+
+You can derive state by creating functions that access other state getters. These functions will automatically track their dependencies and update when any of them change. Most of the time this will be sufficient, but when deriving state from derived state or using derived state in effects, you may want to use memos for better performance and to prevent unnecessary effect reruns. See the [Memos](#memos) section for more details.
+
+```ts
+const [getCount, setCount] = urlState('count', 0)
+const getDoubled = () => getCount() * 2
+
+return html`<div>
+  <p>Count: ${getCount}</p>
+  <p>Doubled: ${getDoubled}</p>
+  <button @click=${() => setCount(getCount() + 1)}>Increment</button>
+</div>`
 ```
 
 ## Templates
@@ -106,7 +143,7 @@ const Component = () => {
 
 ## Memos
 
-When you're deriving state inside of templates, you'll typically be fine just using functions. However, if you're using the derived state in effects or other derived state, you may want to memoize the derived state to prevent unnecessary recomputations and effect reruns. You can do this with the `memo` function.
+When you're deriving state inside of templates, you'll typically be fine just using functions. However, if you're using the derived state in effects or other derived state, you may want to memoize the derived state to prevent unnecessary recomputations and effect reruns. You can do this with the `memo` function. The returned getter function will itself be a trackable dependency that is only computed when its value is first accessed and when any of its dependencies change. If the computed value doesn't change, dependent effects and memos won't rerun.
 
 ```ts
 const [getCount, setCount] = state(0)
@@ -239,7 +276,7 @@ const array = signal([1], {
 array.set([1]) // no change
 ```
 
-### Memoization
+### Memoization cache size
 
 Computed signals implement a [LRU cache](https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_Recently_Used_(LRU)) to memoize previous values based on their dependencies. By default, only the most recent value is cached. You can increase the cache size by passing a `cacheSize` option when creating the computed signal. This is useful for expensive computations that may be called multiple times with the same input values.
 
@@ -280,9 +317,9 @@ const { get: getValue, set: setValue } = signal('')
 return html`<input .value=${getValue} @input=${e => setValue(e.target.value)} />`
 ```
 
-### Watching signals
+### Watching signals outside of components
 
-Most of the time you should be using effects tied to DOM elements so that they are cleaned up automatically when the element is removed from the DOM. However, if you need to watch any signals outside of an effect, you can use the `watch` function to create a disposable watcher.
+Most of the time you should be using `effect` inside components which will be cleaned up automatically when the template is removed from the DOM. However, if you need to watch any signals outside of a component, you can use the `watch` function to create a disposable watcher.
 
 ```ts
 import { signal, watch } from 'solit-html'
@@ -307,24 +344,6 @@ const localStorageSignal = <T>(key: string, initialValue: T) => {
 
   sig.subscribe((value) => {
     localStorage.setItem(key, JSON.stringify(value))
-  })
-
-  return sig
-}
-```
-
-### Sync with URLSearchParams
-
-```ts
-const urlSearchParamsSignal = (key: string, initialValue: string) => {
-  const initialParams = new URLSearchParams(window.location.search)
-  const value = initialParams.get(key) ?? initialValue
-  const sig = signal(value)
-
-  sig.subscribe((value) => {
-    const currentParams = new URLSearchParams(window.location.search)
-    currentParams.set(key, value)
-    window.history.replaceState({}, '', '?' + currentParams.toString())
   })
 
   return sig
