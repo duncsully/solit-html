@@ -5,6 +5,7 @@ import { store } from './store'
 import { URLPattern } from 'urlpattern-polyfill'
 import { createContext } from './context'
 import { ReactiveGetter } from './types'
+import { html } from './html'
 
 // @ts-ignore
 globalThis.URLPattern ??= URLPattern
@@ -227,7 +228,7 @@ export const Router = <K, T extends RouteMap<K>>(
     return matchedPath
   })
 
-  return computed(() =>
+  return html`${() =>
     remainingPathContext.provide(
       params.$[0].get,
       () =>
@@ -237,6 +238,5 @@ export const Router = <K, T extends RouteMap<K>>(
             return acc
           }, {} as Record<string, () => string>)
         ) ?? nothing
-    )
-  )
+    )}`
 }

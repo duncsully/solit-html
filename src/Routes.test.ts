@@ -39,10 +39,10 @@ describe('navigate', () => {
     it('should handle absolute paths with basePath', () => {
       setupHistoryRouting({ base: '/base' })
 
-      const el = html`${Router({
+      const el = Router({
         '/': () => html`<p>Home</p>`,
         '/test': () => html`<p>Test</p>`,
-      })}`
+      })
       render(el, window.document.body)
 
       expect(window.document.body.textContent).toBe('Home')
@@ -55,10 +55,10 @@ describe('navigate', () => {
 
     it('should handle relative paths with basePath', () => {
       setupHistoryRouting({ base: '/base' })
-      const el = html`${Router({
+      const el = Router({
         '/': () => html`<p>Home</p>`,
         '/test': () => html`<p>Test</p>`,
-      })}`
+      })
       render(el, window.document.body)
 
       expect(window.document.body.textContent).toBe('Home')
@@ -78,15 +78,15 @@ describe('navigate', () => {
     it('should correctly render a nested router that starts on a route with optional segment, and then navigates to base route', () => {
       window.history.pushState({}, '', '/item/42/optionalValue')
       setupHistoryRouting()
-      const el = html`${Router({
+      const el = Router({
         '/': () => html`<div>Home</div>`,
         '/item/*?': () =>
-          html`${Router({
+          Router({
             '/': () => html`<div>Item List</div>`,
             '/:id/:optional?': ({ id, optional }) =>
               html`<div>Item ${id}, optional is ${optional}</div>`,
-          })}`,
-      })}`
+          }),
+      })
       render(el, window.document.body)
 
       expect(window.document.body.textContent).toBe(
