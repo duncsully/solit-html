@@ -215,6 +215,7 @@ export const Router = <K, T extends RouteMap<K>>(
       if (match) {
         // TODO: side effect here, move out somehow?
         // This allows for a change in route that doesn't change the component, but still updates the params
+        params[0] = null // always reset the splat param in case it is not overwritten
         Object.entries(match.pathname.groups).forEach(([key, value]) => {
           params[key] = value && decodeURIComponent(value)
         })

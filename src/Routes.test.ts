@@ -73,5 +73,29 @@ describe('navigate', () => {
       expect(window.location.pathname).toBe('/base/')
       expect(window.document.body.textContent).toBe('Home')
     })
+
+    // Yes...this is a highly specific test due to a highly specific bug
+    it('should correctly render a nested router that starts on a route with optional segment, and then navigates to base route', () => {
+      window.history.pushState({}, '', '/item/42/optionalValue')
+      setupHistoryRouting()
+      const el = html`${Router({
+        '/': () => html`<div>Home</div>`,
+        '/item/*?': () =>
+          html`${Router({
+            '/': () => html`<div>Item List</div>`,
+            '/:id/:optional?': ({ id, optional }) =>
+              html`<div>Item ${id}, optional is ${optional}</div>`,
+          })}`,
+      })}`
+      render(el, window.document.body)
+
+      expect(window.document.body.textContent).toBe(
+        'Item 42, optional is optionalValue'
+      )
+
+      navigate('/item')
+
+      expect(window.document.body.textContent).toBe('Item List')
+    })
   })
 })
