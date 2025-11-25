@@ -82,7 +82,7 @@ export const signal = <T>(value: T, options?: SignalOptions<T>) =>
   new Signal(value, options)
 
 /**
- * Creates a reactive state variable.
+ * Creates reactive state getter and setter.
  * @param value - The initial value of the state
  * @returns A tuple containing the getter and setter for the state
  * @example
