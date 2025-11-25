@@ -1,11 +1,12 @@
 import { HTMLTemplateResult, nothing } from 'lit-html'
 import { signal } from './signals/Signal'
-import { computed } from './signals/ComputedSignal'
+import { memo } from './signals/ComputedSignal'
 import { store } from './store'
 import { URLPattern } from 'urlpattern-polyfill'
 import { createContext } from './context'
 import { ReactiveGetter } from './types'
 import { html } from './html'
+import { effects } from './directives'
 
 // @ts-ignore
 globalThis.URLPattern ??= URLPattern
@@ -45,7 +46,6 @@ type RouteMap<T> = {
 // TODO better type checking to prevent invalid routes
 // TODO Way to load data before returning for SSR?
 // TODO types for modifiers * and +
-// TODO use computed signals for params
 // TODO escape input to navigate?
 // TODO lots of error handling for unhappy paths
 
@@ -158,7 +158,9 @@ const sortPaths = (paths: string[]) =>
     return compareSegments(aParts, bParts)
   })
 
-const remainingPathContext = createContext(currentPath.get)
+const remainingPathContext = createContext<
+  ReactiveGetter<string | undefined | null>
+>(currentPath.get)
 
 /**
  * Router component for choosing a route based on the provided path.
@@ -202,41 +204,49 @@ export const Router = <K, T extends RouteMap<K>>(
   routes: T,
   path = remainingPathContext.value
 ) => {
-  const params = store({} as any)
+  const formattedPath = memo(
+    () => `${path()?.startsWith('/') ? '' : '/'}${path() ?? ''}`
+  )
 
-  const activePath = computed(() => {
-    const formattedPath = `${path()?.startsWith('/') ? '' : '/'}${path() ?? ''}`
-
+  const activePath = memo(() => {
     const matchedPath = sortPaths(Object.keys(routes)).find((route) => {
       const formattedRoute = `${route.startsWith('/') ? '' : '/'}${route}`
       const pattern = new URLPattern({
         pathname: formattedRoute,
       })
-      const match = pattern.exec({ pathname: formattedPath })
-      if (match) {
-        // TODO: side effect here, move out somehow?
-        // This allows for a change in route that doesn't change the component, but still updates the params
-        params[0] = null // always reset the splat param in case it is not overwritten
-        Object.entries(match.pathname.groups).forEach(([key, value]) => {
-          params[key] = value && decodeURIComponent(value)
-        })
-
-        return formattedRoute
-      }
-    }) as keyof T | undefined
+      return !!pattern.exec({ pathname: formattedPath() })
+    }) as (keyof T & string) | undefined
 
     return matchedPath
   })
 
-  return html`${() =>
+  const params = store({} as Record<string, string | undefined | null>)
+  const updateParams = () => {
+    const matchPath = activePath()
+    if (!matchPath) return
+
+    const formattedRoute = `${matchPath.startsWith('/') ? '' : '/'}${matchPath}`
+    const pattern = new URLPattern({
+      pathname: formattedRoute,
+    })
+    const match = pattern.exec({ pathname: formattedPath() })
+    if (!match) return
+
+    params[0] = null // always reset the splat param in case it is not overwritten
+    Object.entries(match.pathname.groups).forEach(([key, value]) => {
+      params[key] = value && decodeURIComponent(value)
+    })
+  }
+
+  return html`${effects(updateParams)}${() =>
     remainingPathContext.provide(
       params.$[0].get,
       () =>
-        routes[activePath.get() ?? '']?.(
+        routes[activePath() ?? '']?.(
           Object.getOwnPropertyNames(params).reduce((acc, key) => {
             acc[key] = params.$[key].get
             return acc
-          }, {} as Record<string, () => string>)
+          }, {} as Record<string, ReactiveGetter<string | undefined | null>>)
         ) ?? nothing
     )}`
 }
