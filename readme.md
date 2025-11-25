@@ -7,13 +7,13 @@ Yet another user interface library. Small, simple, signal-based, and sfunctional
 Only three primitives are needed to build reactive components:
 
 - `state(initialValue)` - creates a getter and setter pair for trackable state
-- `effects(...effectCbs)` - a template directive that ties all provided effect callbacks to the given element
+- `effect(callback)` - runs and ties a side effect to the next created template when it renders
 - `html` - a template literal tagging function to build reactive lit-html templates for generating DOM
 
 The returned template results of calling a component can then be rendered with lit-html's `render` function.
 
 ```ts
-import { state, effects, html } from 'solit-html'
+import { state, effect, html } from 'solit-html'
 import { render } from 'lit-html'
 
 const Counter = () => {
@@ -39,8 +39,8 @@ const Doubled = ({ getCount }: { getCount: () => number }) => {
   // Automatically tracks dependency `getCount`
   const getDoubled = () => getCount() * 2
 
-  // Define an effect
-  const logDoubled = () => {
+  // Define an effect (named function not required but helpful for readability)
+  effect(function logDoubled() {
     // Tracks dependency `getDoubled` and reruns when it changes
     console.log('doubled:', getDoubled())
 
@@ -49,10 +49,9 @@ const Doubled = ({ getCount }: { getCount: () => number }) => {
     return () => {
       console.log('cleaning up doubled effect')
     }
-  }
+  })
 
-  // Bind effects to the element
-  return html`<p ${effects(logDoubled)}>Double: ${getDoubled}</p>`
+  return html`<p>Double: ${getDoubled}</p>`
 }
 
 render(Counter(), document.body)
@@ -75,9 +74,35 @@ The `html` exported from Solit-html adds additional functionality:
 
 ## Effects
 
-Effects are a way to run side effects in response to changes in signals. They are similar to the `useEffect` hook in React, but since components don't really exist at runtime in Solit-html, they are not bound to a component lifecycle. Instead, they are bound to an element in the template via the `effects` directive.
+Effects are a way to run side effects in response to changes in state. Declare an effect with the `effect` function. It is similar to the `useEffect` hook in React. All effects will be tied to the next template created with `html` and called when it is rendered. They can optionally return a cleanup function. Whenever their dependencies change, the cleanup function will be called if it exists, and then the effect will be run again. The cleanup function will also be called when the template is removed from the DOM.
 
-You can pass in one or more effect callbacks to the `effects` directive, and they will be run in the order they are passed in when the template is rendered. They can optionally return a cleanup function. Whenever their dependencies change, the cleanup function will be called if it exists, and then the effect will be run again. The cleanup function will also be called when the element is removed from the DOM.
+Since effects are tied to the next created template, pay mind when creating any sub-templates in your component functions. If you declare an effect and then create a sub-template before returning the main template, the effect will be tied to the sub-template instead of the main template. If that sub-template is conditionally rendered within the main template, the effect will be cleaned up when the sub-template is removed from the DOM.
+
+```ts
+const Component = () => {
+  effect(() => {
+    console.log('sub-template rendered')
+    return () => console.log('sub-template removed')
+  })
+  // Sub-template created before main template, effect tied to this
+  const subTemplate = html`<div>Sub-template</div>`
+  const [showSubTemplate, setShowSubTemplate] = state(true)
+
+  // Will be tied to the main template
+  effect(() => {
+    console.log('main template rendered')
+    return () => console.log('main template removed')
+  })
+  
+  return html`<div>
+    Main template
+    <button 
+      @click=${() => setShowSubTemplate(!showSubTemplate())}
+    >Toggle Sub-template</button>
+    ${() => showSubTemplate() && subTemplate}
+  </div>`
+}
+```
 
 ## Memos
 

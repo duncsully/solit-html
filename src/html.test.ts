@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { signal } from './signals/Signal'
 import { computed } from './signals/ComputedSignal'
 import { render } from 'lit-html'
-import { html } from './html'
+import { effect, html } from './html'
 
 describe('html', () => {
   it('accepts signals and updates the DOM when they do', () => {
@@ -100,5 +100,25 @@ describe('html', () => {
       tagName: 'P',
       textContent: '',
     })
+  })
+
+  it('runs all queued effects when rendering the template', () => {
+    const cleanup = vi.fn()
+    const effectFn1 = vi.fn(() => cleanup)
+    const effectFn2 = vi.fn()
+
+    const component = () => {
+      effect(effectFn1)
+      effect(effectFn2)
+      return html`<p>Test</p>`
+    }
+    render(component(), window.document.body)
+
+    expect(effectFn1).toHaveBeenCalledOnce()
+    expect(effectFn2).toHaveBeenCalledOnce()
+
+    render(html`<p>Updated</p>`, window.document.body)
+
+    expect(cleanup).toHaveBeenCalledOnce()
   })
 })
