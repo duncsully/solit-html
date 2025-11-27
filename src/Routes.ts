@@ -7,6 +7,7 @@ import { createContext } from './context'
 import { ReactiveGetter } from './types'
 import { html } from './html'
 import { effects } from './directives'
+import { cache } from 'lit-html/directives/cache.js'
 
 // @ts-ignore
 globalThis.URLPattern ??= URLPattern
@@ -239,14 +240,14 @@ export const Router = <K, T extends RouteMap<K>>(
   }
 
   return html`${effects(updateParams)}${() =>
-    remainingPathContext.provide(
-      params.$[0].get,
-      () =>
+    remainingPathContext.provide(params.$[0].get, () =>
+      cache(
         routes[activePath() ?? '']?.(
           Object.getOwnPropertyNames(params).reduce((acc, key) => {
             acc[key] = params.$[key].get
             return acc
           }, {} as Record<string, ReactiveGetter<string | undefined | null>>)
         ) ?? nothing
+      )
     )}`
 }
