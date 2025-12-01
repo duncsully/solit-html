@@ -18,7 +18,7 @@ import { urlState, effect, html } from 'solit-html'
 import { render } from 'lit-html'
 
 const Counter = () => {
-  // State synced with URL search param "count"
+  // State synced with URL search param "count", defaulting to 0 if not present
   const [getCount, setCount] = urlState('count', 0)
 
   const increment = () => setCount(getCount() + 1)
@@ -81,7 +81,7 @@ return html`<div>
 
 ### Derived state
 
-You can derive state by creating functions that access other state getters. These functions will automatically track their dependencies and update when any of them change. Most of the time this will be sufficient, but when deriving state from derived state or using derived state in effects, you may want to use memos for better performance and to prevent unnecessary effect reruns. See the [Memos](#memos) section for more details.
+You can derive state by creating functions that access other state getters. These functions will automatically track their dependencies and update the template when any of the dependencies change. Most of the time this will be sufficient, but when deriving state from other derived state or using derived state in effects, you may want to use memos for better performance and to prevent unnecessary effect reruns. See the [Memos](#memos) section for more details.
 
 ```ts
 const [getCount, setCount] = urlState('count', 0)
@@ -148,9 +148,11 @@ When you're deriving state inside of templates, you'll typically be fine just us
 ```ts
 const [getCount, setCount] = state(0)
 const getOnesDigit = memo(() => getCount() % 10)
-function logOnesDigit() {
+
+effect(function logOnesDigit() {
   console.log('Ones digit is', getOnesDigit())
-}
+})
+
 setCount(1) // > Ones digit is 1
 setCount(11) // No log, ones digit didn't change
 ```
@@ -173,7 +175,10 @@ someConnection.on('flipDimensions', () => {
     setHeight(currentWidth)
   })
 })
-// Since getArea didn't actually change, it won't recompute
+// Since getArea didn't actually change, it won't update the template
+return html`
+  <p>Area: ${getArea}</p>
+`
 ```
 
 ## Context
@@ -203,7 +208,7 @@ const DeeplyNestedComponent = () => {
 
 ## Routing
 
-Solit-html provides a simple router that can optionally leverage the `history` API, automatically handling anchor clicks to local hrefs. It uses URLPattern (polyfilled in browsers that don't support it) to match routes. You create a router with the `Router` function, passing in an object of routes to functions that will receive the route parameters as objects of reactive getters. The router will select the most specific route that matches the current URL regardless of order. You can end a route with `*` or `*?` to match all the remaining URL segments, and then nest another Router inside that route to accomplish layouts and subrouting. Each Router establishes a context with the remaining unprocessed URL segments for the following Router to consume.
+Solit-html provides a simple router component that can optionally leverage the `history` API, automatically handling anchor clicks to local hrefs. It uses [URLPattern](https://developer.mozilla.org/en-US/docs/Web/API/URLPattern) (polyfilled in browsers that don't support it) to match routes. You create a router with the `Router` function, passing in an object of routes to functions that will receive the route parameters as objects of reactive getters. The router will select the most specific route that matches the current URL regardless of order. You can end a route with `*` or `*?` to match all the remaining URL segments, and then nest another Router inside that route to accomplish layouts and subrouting. Each Router establishes a context with the remaining unprocessed URL segments that the following Router will automatically consume.
 
  ```ts
 setupHistoryRouting({
