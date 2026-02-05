@@ -44,6 +44,10 @@ type RouteMap<T> = {
     : never
 }
 
+// TODO Fix, just doesn't quite work right with base paths
+// TODO Unify href building logic, export function to generate hrefs
+// TODO Rethink global routing config and hijacking all a clicks
+// TODO Separate module in build
 // TODO better type checking to prevent invalid routes
 // TODO Way to load data before returning for SSR?
 // TODO types for modifiers * and +
@@ -57,39 +61,42 @@ const setPath = (path: string) => {
 
 let historyRouting = false
 let basePath = ''
-export const setupHistoryRouting = ({ base }: { base?: string } = {}) => {
+export const setupRouting = ({
+  base,
+  useHistory = false,
+}: { base?: string; useHistory?: boolean } = {}) => {
   basePath = base ?? ''
   if (basePath.endsWith('/')) {
     basePath = basePath.slice(0, -1)
   }
-  historyRouting = true
+  historyRouting = useHistory
   let initialPath = window.location.pathname
   if (initialPath.startsWith(basePath)) {
     initialPath = initialPath.slice(basePath.length)
   }
   setPath(initialPath)
-}
 
-window.addEventListener('click', (e) => {
-  if (
-    e.target instanceof HTMLAnchorElement &&
-    e.target.href.startsWith(window.location.origin)
-  ) {
-    e.preventDefault()
-    if (historyRouting) {
-      window.history.pushState({}, '', e.target.href)
-    } else {
-      window.location.hash = e.target.pathname
+  window.addEventListener('click', (e) => {
+    if (
+      e.target instanceof HTMLAnchorElement &&
+      e.target.href.startsWith(window.location.origin)
+    ) {
+      e.preventDefault()
+      if (historyRouting) {
+        window.history.pushState({}, '', e.target.href)
+      } else {
+        window.location.hash = e.target.pathname
+      }
+
+      setPath(e.target.pathname)
     }
-
-    setPath(e.target.pathname)
-  }
-})
-window.addEventListener('popstate', () => {
-  setPath(
-    historyRouting ? window.location.pathname : window.location.hash.slice(1)
-  )
-})
+  })
+  window.addEventListener('popstate', () => {
+    setPath(
+      historyRouting ? window.location.pathname : window.location.hash.slice(1)
+    )
+  })
+}
 
 export const navigate = (path: string) => {
   if (historyRouting) {
