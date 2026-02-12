@@ -144,6 +144,15 @@ describe('Signal', () => {
 
       expect(subscriber).not.toHaveBeenCalled()
     })
+
+    it('works after observing a signal that has been changed from its initial value before subscribers back to its initial value', () => {
+      const number = new Signal(1)
+      const subscriber = vi.fn()
+      number.set(2)
+      number.observe(subscriber)
+      number.set(1)
+      expect(subscriber).toHaveBeenCalledWith(1)
+    })
   })
 
   describe('unsubscribe', () => {

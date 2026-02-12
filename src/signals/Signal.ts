@@ -36,6 +36,9 @@ export class Signal<T> extends SignalBase<T> {
    */
   set = (value: T) => {
     this._value = value
+    if (this._subscribers.size === 0) {
+      this._lastBroadcastValue = value
+    }
     this.requestUpdate()
     return this._value
   }
