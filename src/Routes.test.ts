@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { navigate, Router, setupHistoryRouting } from './Routes'
+import { navigate, Router, setupRouting } from './Routes'
 import { html } from './html'
 import { render } from 'lit-html'
 
@@ -9,7 +9,7 @@ describe('navigate', () => {
       window.history.pushState({}, '', '/')
     })
     it('should handle absolute paths', () => {
-      setupHistoryRouting()
+      setupRouting({ useHistory: true })
 
       navigate('/test')
 
@@ -21,7 +21,7 @@ describe('navigate', () => {
     })
 
     it('should handle relative paths', () => {
-      setupHistoryRouting()
+      setupRouting({ useHistory: true })
 
       navigate('test')
 
@@ -37,7 +37,7 @@ describe('navigate', () => {
     })
 
     it('should handle absolute paths with basePath', () => {
-      setupHistoryRouting({ base: '/base' })
+      setupRouting({ base: '/base', useHistory: true })
 
       const el = Router({
         '/': () => html`<p>Home</p>`,
@@ -54,7 +54,7 @@ describe('navigate', () => {
     })
 
     it('should handle relative paths with basePath', () => {
-      setupHistoryRouting({ base: '/base' })
+      setupRouting({ base: '/base', useHistory: true })
       const el = Router({
         '/': () => html`<p>Home</p>`,
         '/test': () => html`<p>Test</p>`,
@@ -77,7 +77,7 @@ describe('navigate', () => {
     // Yes...this is a highly specific test due to a highly specific bug
     it('should correctly render a nested router that starts on a route with optional segment, and then navigates to base route', () => {
       window.history.pushState({}, '', '/item/42/optionalValue')
-      setupHistoryRouting()
+      setupRouting({ useHistory: true })
       const el = Router({
         '/': () => html`<div>Home</div>`,
         '/item/*?': () =>
