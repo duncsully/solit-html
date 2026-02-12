@@ -68,7 +68,9 @@ export class SignalBase<T> {
 
     subscriber(this.peek)
 
-    this._lastBroadcastValue = this._value
+    if (this._subscribers.size === 1) {
+      this._lastBroadcastValue = this._value
+    }
 
     return unsubscribe
   }

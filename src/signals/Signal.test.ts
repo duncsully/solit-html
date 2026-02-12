@@ -186,6 +186,17 @@ describe('Signal', () => {
       expect(subscriber2).toHaveBeenCalledWith(2)
     })
   })
+
+  it('does not prevent batched updates from working when called inside a batch', () => {
+    const number = new Signal(1)
+    const subscriber = vi.fn()
+    number.observe(subscriber)
+    batch(() => {
+      number.set(2)
+      number.subscribe(vi.fn())
+    })
+    expect(subscriber).toHaveBeenCalledWith(2)
+  })
 })
 
 describe('batch', () => {
