@@ -2,15 +2,11 @@ import { HTMLTemplateResult, nothing } from 'lit-html'
 import { signal } from './signals/Signal'
 import { memo } from './signals/ComputedSignal'
 import { store } from './store'
-import { URLPattern } from 'urlpattern-polyfill'
 import { createContext } from './context'
 import { ReactiveGetter } from './types'
 import { html } from './html'
 import { effects } from './directives'
 import { cache } from 'lit-html/directives/cache.js'
-
-// @ts-ignore
-globalThis.URLPattern ??= URLPattern
 
 type ParamIfRequired<T> = T extends `${string}?` ? never : T
 type ParamIfOptional<T> = T extends `${infer Param}?` ? Param : never

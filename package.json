@@ -1,14 +1,21 @@
 {
   "name": "solit-html",
-  "private": true,
   "version": "0.0.0",
-  "type": "module",
-  "files": [
-    "dist"
-  ],
   "main": "dist/main.umd.cjs",
   "module": "dist/main.js",
-  "types": "dist/index.d.ts",
+  "devDependencies": {
+    "@testing-library/dom": "^10.2.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/node": "^25.6.0",
+    "happy-dom": "^20.0.10",
+    "rollup-plugin-node-externals": "^9.0.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.10",
+    "vitest": "^4.1.5"
+  },
+  "peerDependencies": {
+    "lit-html": "^3.1.4"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -16,33 +23,23 @@
       "require": "./dist/main.umd.cjs"
     }
   },
-  "scripts": {
-    "dev": "vite",
-    "host": "vite --host",
-    "prepare": "npm run build",
-    "prepack": "npm run build",
-    "build": "tsc && vite build",
-    "build:site": "vite build --config vite-site.config.ts",
-    "preview": "vite preview --config vite-site.config.ts",
-    "test": "vitest"
-  },
-  "devDependencies": {
-    "@testing-library/dom": "^10.2.0",
-    "@testing-library/user-event": "^14.5.2",
-    "@types/node": "^22.13.14",
-    "happy-dom": "^20.0.10",
-    "rollup-plugin-node-externals": "^8.0.1",
-    "typescript": "^5.9.3",
-    "vite": "^7.2.0",
-    "vitest": "^4.0.7"
-  },
-  "dependencies": {
-    "urlpattern-polyfill": "^10.0.0"
-  },
-  "peerDependencies": {
-    "lit-html": "^3.1.4"
-  },
   "engines": {
     "node": ">=20.12.2 <25"
-  }
+  },
+  "files": [
+    "dist"
+  ],
+  "private": true,
+  "scripts": {
+    "dev": "bun run --bun vite",
+    "host": "bun run --bun vite --host",
+    "prepare": "bun run build",
+    "prepack": "bun run build",
+    "build": "bun run tsc && bun run --bun vite build",
+    "build:site": "bun run --bun vite build --config vite-site.config.ts",
+    "preview": "bun run --bun vite preview --config vite-site.config.ts",
+    "test": "bun run --bun vitest"
+  },
+  "type": "module",
+  "types": "dist/index.d.ts"
 }
